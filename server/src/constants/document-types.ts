@@ -32,7 +32,13 @@ export const DOCUMENT_EXT_TO_MIME: Record<string, DocumentMimeType> =
     ]),
   );
 
+// Normalize jpeg/jpg ext 
+const EXT_ALIASES: Record<string, string> = {
+  jpeg: 'jpg'
+};
+
 export function getMimeTypeFromKey(key: string): DocumentMimeType | undefined {
-  const ext = key.split('.').pop() || '';
+  const rawExt = key.split('.').pop() || '';
+  const ext = EXT_ALIASES[rawExt] || rawExt;
   return DOCUMENT_EXT_TO_MIME[ext];
 }
