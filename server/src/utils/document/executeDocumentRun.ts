@@ -25,7 +25,7 @@ export async function executeDocumentRun(
 
   try {
     const pdfBuffer = await getDocumentFromMinio(robotRecording.documentKey);
-    const mimeType = getMimeTypeFromKey(robotRecording.documentKey);          // Grab mimeType
+    const mimeType = getMimeTypeFromKey(robotRecording.documentKey);
 
     const result = await DocumentInterpreter.extractData(
       pdfBuffer,
@@ -33,7 +33,7 @@ export async function executeDocumentRun(
       robotRecording.extractionSchema || {},
       llmConfig,
       mimeType
-    );
+    );          
 
     const serializableOutput = {
       scrapeDoc: {

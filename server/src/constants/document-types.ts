@@ -24,15 +24,17 @@ export const DOCUMENT_MIME_TO_EXT: Record<DocumentMimeType, string> = {
 };
 
 // Used at readback time
-export const DOCUMENT_EXT_TO_MIME: Record<string, DocumentMimeType> =
-  Object.fromEntries(
+export const DOCUMENT_EXT_TO_MIME: Record<string, DocumentMimeType> = {
+  ...Object.fromEntries(
     Object.entries(DOCUMENT_MIME_TO_EXT).map(([mime, ext]) => [
       ext,
       mime as DocumentMimeType,
     ]),
-  );
+  ),
+  'jpeg': 'image/jpeg',
+};
 
 export function getMimeTypeFromKey(key: string): DocumentMimeType | undefined {
-  const ext = key.split('.').pop() || '';
+  const ext = key.split('.').pop()?.toLowerCase() || '';
   return DOCUMENT_EXT_TO_MIME[ext];
 }
