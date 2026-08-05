@@ -48,7 +48,7 @@ const sanitizeRobotMeta = (robot: any): any => {
   return plain;
 };
 
-const pdfUpload = multer({
+const documentUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
   fileFilter: (_req, file, cb) => {
@@ -61,7 +61,7 @@ const pdfUpload = multer({
 });
 
 const uploadDocument = (req: any, res: any, next: any) => {
-  pdfUpload.single('file')(req, res, (err: any) => {
+  documentUpload.single('file')(req, res, (err: any) => {
     if (err)
       return res.status(400).json({ error: err.message || 'Invalid file upload.' });
     next();
