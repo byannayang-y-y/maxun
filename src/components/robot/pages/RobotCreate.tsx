@@ -576,7 +576,7 @@ const RobotCreate: React.FC = () => {
   };
 
   const handleCreateDocumentRobot = async () => {
-    if (!documentFile) { notify('error', 'Please upload a PDF, JPEG, or PNG file'); return; }
+    if (!documentFile) { notify('error', 'Please upload a PDF, JPG, or PNG file'); return; }
     if (!documentPrompt.trim()) { notify('error', 'Please enter an extraction prompt'); return; }
     if (!documentRobotName.trim()) { notify('error', 'Please enter a robot name'); return; }
 
@@ -606,7 +606,7 @@ const RobotCreate: React.FC = () => {
   };
 
   const handleCreateDocumentParseRobot = async () => {
-    if (!documentFile) { notify('error', 'Please upload a PDF, JPEG, or PNG file'); return; }
+    if (!documentFile) { notify('error', 'Please upload a PDF, JPG, or PNG file'); return; }
     if (!documentRobotName.trim()) { notify('error', 'Please enter a robot name'); return; }
     if (documentParseFormats.length === 0) { notify('error', 'Please select at least one output format'); return; }
 
@@ -1812,7 +1812,7 @@ const RobotCreate: React.FC = () => {
                 alt="Maxun Logo"
               />
               <Typography variant="body2" color="text.secondary" mb={3}>
-                Process PDFs with AI — extract structured fields or convert to Markdown, HTML, and links.
+                Process PDFs, JPGs, or PNGs with AI — extract structured fields or convert to Markdown, HTML, and links.
               </Typography>
 
               <Box sx={{ width: '100%', maxWidth: 700 }}>
@@ -1896,7 +1896,7 @@ const RobotCreate: React.FC = () => {
                     </Typography>
                   ) : (
                     <>
-                      <Typography variant="body1" fontWeight={500}>Click to upload a PDF, JPEG, or PNG</Typography>
+                      <Typography variant="body1" fontWeight={500}>Click to upload a PDF, JPG, or PNG</Typography>
                       <Typography variant="body2" color="text.secondary">Max file size: 10 MB</Typography>
                     </>
                   )}
