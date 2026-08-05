@@ -32,6 +32,7 @@ import {
   isDocumentMimeType,
   DOCUMENT_MIME_TYPES,
   DocumentMimeType,
+  DOCUMENT_MIME_TO_EXT
 } from '../constants/document-types';
 import { MAX_FILE_SIZE_BYTES } from '../workflow-management/classes/DocumentInterpreter';
 import { createDocumentRobotRecord } from '../utils/document/createDocumentRobotRecord';
@@ -2415,7 +2416,7 @@ router.put(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
+      if (!file) return res.status(400).json({ error: 'A file is required.' });
 
       const robot = await Robot.findOne({ where: { 'recording_meta.id': req.params.id, userId: req.user.id } });
       if (!robot) return res.status(404).json({ error: 'Robot not found.' });
@@ -2425,14 +2426,26 @@ router.put(
         return res.status(400).json({ error: 'Robot is not a document robot.' });
       }
 
-      const { uploadDocumentToMinio } = await import('../storage/mino');
-      const documentKey = (robot.recording as any).documentKey;
-      if (!documentKey) return res.status(400).json({ error: 'Robot has no document key.' });
+      const { uploadDocumentToMinio, deleteDocumentFromMinio } = await import('../storage/mino');
+      const oldDocumentKey = (robot.recording as any).documentKey;
+      if (!oldDocumentKey) return res.status(400).json({ error: 'Robot has no document key.' });
 
-      await uploadDocumentToMinio(documentKey, file.buffer, 'application/pdf');
+      const mimeType = file.mimetype as DocumentMimeType;
+      const newDocumentKey = `documents/${req.params.id}/document.${DOCUMENT_MIME_TO_EXT[mimeType]}`;
+
+      await uploadDocumentToMinio(newDocumentKey, file.buffer, mimeType);
+
+      if (newDocumentKey !== oldDocumentKey) {
+        try {
+          await deleteDocumentFromMinio(oldDocumentKey);
+        } catch (cleanupErr: any) {
+          logger.warn(`Failed to delete orphaned document ${oldDocumentKey}: ${cleanupErr.message}`);
+        }
+      }
 
       const updatedRecording: any = {
         ...(robot.recording as any),
+        documentKey: newDocumentKey,
         documentFileName: file.originalname,
       };
 
