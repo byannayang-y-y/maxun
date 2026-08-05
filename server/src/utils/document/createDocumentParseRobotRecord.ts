@@ -10,7 +10,7 @@ import {
 } from '../../constants/document-types';
 
 export interface CreateDocumentParseRobotParams {
-  pdfBuffer: Buffer;
+  documentBuffer: Buffer;
   originalFileName: string;
   robotName: string;
   outputFormats: OutputFormats[];
@@ -26,15 +26,15 @@ export interface CreateDocumentParseRobotResult {
 export async function createDocumentParseRobotRecord(
   params: CreateDocumentParseRobotParams
 ): Promise<CreateDocumentParseRobotResult> {
-  const { pdfBuffer, originalFileName, robotName, outputFormats, userId, mimeType } = params;
+  const { documentBuffer, originalFileName, robotName, outputFormats, userId, mimeType } = params;
 
-  const parsedOutput = await DocumentInterpreter.parse(pdfBuffer, outputFormats, mimeType);
+  const parsedOutput = await DocumentInterpreter.parse(documentBuffer, outputFormats, mimeType);
 
   const robotId = uuid();
   const now = new Date().toISOString();
   const documentKey = `documents/${robotId}/document.${DOCUMENT_MIME_TO_EXT[mimeType]}`;
 
-  await uploadDocumentToMinio(documentKey, pdfBuffer, mimeType);
+  await uploadDocumentToMinio(documentKey, documentBuffer, mimeType);
 
   const robot = await Robot.create({
     id: uuid(),

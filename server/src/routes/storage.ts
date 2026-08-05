@@ -2264,7 +2264,7 @@ router.post(
       }
 
       const { robot, parsedOutput } = await createDocumentParseRobotRecord({
-        pdfBuffer: file.buffer,
+        documentBuffer: file.buffer,
         originalFileName: file.originalname,
         robotName: finalName,
         outputFormats,
