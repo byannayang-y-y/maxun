@@ -1896,7 +1896,7 @@ const RobotCreate: React.FC = () => {
                     </Typography>
                   ) : (
                     <>
-                      <Typography variant="body1" fontWeight={500}>Click to upload a PDF, JPG, or PNG</Typography>
+                      <Typography variant="body1" fontWeight={500}>Click to upload a PDF, JPG, or PNG file</Typography>
                       <Typography variant="body2" color="text.secondary">Max file size: 10 MB</Typography>
                     </>
                   )}
