@@ -311,4 +311,8 @@ export async function getDocumentFromMinio(key: string): Promise<Buffer> {
   });
 }
 
+export async function deleteDocumentFromMinio(key: string): Promise<void> {
+  await minioClient.removeObject(DOCUMENT_BUCKET, key);
+}
+
 export { minioClient, BinaryOutputService };
