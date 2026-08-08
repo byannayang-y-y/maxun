@@ -45,7 +45,12 @@ export async function createDocumentRobotRecord(
   };
 
   // Get MIME type cleanly from the original file name
-  const mimeType = getMimeTypeFromKey(originalFileName) || 'application/pdf';
+  const mimeType = getMimeTypeFromKey(originalFileName);
+
+  // Fail fast if the file type is unsupported or unrecognized
+  if (!mimeType) {
+    throw new Error(`Unsupported or unrecognized file type for: ${originalFileName}`);
+  }
   
   // Branch text extraction
   let sampleText = '';
@@ -66,9 +71,12 @@ export async function createDocumentRobotRecord(
   const finalName = robotName?.trim() || `Document: ${prompt.substring(0, 50)}`;
   
   // Extract the extension for the storage key
-  const ext = originalFileName.includes('.') 
-    ? originalFileName.substring(originalFileName.lastIndexOf('.')).toLowerCase() 
-    : '.pdf';
+  const extIndex = originalFileName.lastIndexOf('.');
+  if (extIndex === -1) {
+    throw new Error(`Cannot determine file extension for storage key: ${originalFileName}`);
+  }
+  const ext = originalFileName.substring(extIndex).toLowerCase();
+
   const documentKey = `documents/${robotId}/document${ext}`;
 
   await uploadDocumentToMinio(documentKey, pdfBuffer, mimeType);
