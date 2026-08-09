@@ -2207,7 +2207,7 @@ router.post(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
 
       const { prompt, name, llmProvider, llmModel, llmApiKey, llmBaseUrl } = req.body;
       if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -2265,7 +2265,7 @@ router.post(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
 
       const { name, formats } = req.body;
 
@@ -2432,7 +2432,7 @@ router.put(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
 
       const robot = await Robot.findOne({ where: { 'recording_meta.id': req.params.id, userId: req.user.id } });
       if (!robot) return res.status(404).json({ error: 'Robot not found.' });
