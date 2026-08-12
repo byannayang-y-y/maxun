@@ -2190,7 +2190,7 @@ router.post(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG/JPEG file is required.' });
 
       const { prompt, name, llmProvider, llmModel, llmApiKey, llmBaseUrl } = req.body;
       if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {

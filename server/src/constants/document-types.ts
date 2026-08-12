@@ -24,7 +24,7 @@ export const DOCUMENT_MIME_TO_EXT: Record<DocumentMimeType, string> = {
 };
 
 // Used at readback time
-export const DOCUMENT_EXT_TO_MIME: Record<string, DocumentMimeType> =
+export const DOCUMENT_EXT_TO_MIME: Record<string, DocumentMimeType> = 
   Object.fromEntries(
     Object.entries(DOCUMENT_MIME_TO_EXT).map(([mime, ext]) => [
       ext,

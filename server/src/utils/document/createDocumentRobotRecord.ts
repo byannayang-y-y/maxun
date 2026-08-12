@@ -2,6 +2,7 @@ import { v4 as uuid } from 'uuid';
 import Robot from '../../models/Robot';
 import { DocumentInterpreter, LLMConfig } from '../../workflow-management/classes/DocumentInterpreter';
 import { uploadDocumentToMinio } from '../../storage/mino';
+import { getMimeTypeFromKey } from '../../constants/document-types';
 import logger from '../../logger';
 
 export interface CreateDocumentRobotParams {
@@ -43,17 +44,42 @@ export async function createDocumentRobotRecord(
     baseUrl: llmBaseUrl,
   };
 
-  const { text: sampleText } = await DocumentInterpreter.extractTextFromPDF(pdfBuffer);
-  if (!sampleText) throw new Error('Could not extract text from PDF');
+  // Get MIME type cleanly from the original file name
+  const mimeType = getMimeTypeFromKey(originalFileName);
+
+  // Fail fast if the file type is unsupported or unrecognized
+  if (!mimeType) {
+    throw new Error(`Unsupported or unrecognized file type for: ${originalFileName}`);
+  }
+  
+  // Branch text extraction
+  let sampleText = '';
+  if (mimeType === 'application/pdf') {
+    const { text } = await DocumentInterpreter.extractTextFromPDF(pdfBuffer);
+    sampleText = text;
+  } else {
+    const { text } = await DocumentInterpreter.parseImage(pdfBuffer, mimeType);
+    sampleText = text;
+  }
+
+  if (!sampleText) throw new Error('Could not extract text from document');
 
   const extractionSchema = await DocumentInterpreter.generateExtractionSchema(prompt, sampleText, llmConfig);
 
   const robotId = uuid();
   const now = new Date().toISOString();
   const finalName = robotName?.trim() || `Document: ${prompt.substring(0, 50)}`;
-  const documentKey = `documents/${robotId}/document.pdf`;
+  
+  // Extract the extension for the storage key
+  const extIndex = originalFileName.lastIndexOf('.');
+  if (extIndex === -1) {
+    throw new Error(`Cannot determine file extension for storage key: ${originalFileName}`);
+  }
+  const ext = originalFileName.substring(extIndex).toLowerCase();
 
-  await uploadDocumentToMinio(documentKey, pdfBuffer, 'application/pdf');
+  const documentKey = `documents/${robotId}/document${ext}`;
+
+  await uploadDocumentToMinio(documentKey, pdfBuffer, mimeType);
 
   const robot = await Robot.create({
     id: uuid(),
