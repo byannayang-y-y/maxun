@@ -48,7 +48,7 @@ const sanitizeRobotMeta = (robot: any): any => {
   return plain;
 };
 
-const pdfUpload = multer({
+const documentUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
   fileFilter: (_req, file, cb) => {
@@ -61,7 +61,7 @@ const pdfUpload = multer({
 });
 
 const uploadDocument = (req: any, res: any, next: any) => {
-  pdfUpload.single('file')(req, res, (err: any) => {
+  documentUpload.single('file')(req, res, (err: any) => {
     if (err)
       return res.status(400).json({ error: err.message || 'Invalid file upload.' });
     next();
@@ -2236,7 +2236,7 @@ router.post(
 
 /**
  * POST endpoint for creating a document parse robot (doc-parse).
- * Accepts a PDF upload and output format list. Parses the document immediately and
+ * Accepts a PDF, JPG, or PNG upload and output format list. Parses the document immediately and
  * stores both the document and parsed output in MinIO / database.
  */
 router.post(
@@ -2248,7 +2248,7 @@ router.post(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
+      if (!file) return res.status(400).json({ error: 'A file is required.' });
 
       const { name, formats } = req.body;
 
@@ -2264,7 +2264,7 @@ router.post(
       }
 
       const { robot, parsedOutput } = await createDocumentParseRobotRecord({
-        pdfBuffer: file.buffer,
+        documentBuffer: file.buffer,
         originalFileName: file.originalname,
         robotName: finalName,
         outputFormats,
@@ -2405,7 +2405,7 @@ router.post('/runs/document-parse-run/:id', requireSignIn, async (req: Authentic
 });
 
 /**
- * PUT endpoint to replace the PDF document for an existing doc-extract or doc-parse robot.
+ * PUT endpoint to replace the document for an existing doc-extract or doc-parse robot.
  */
 router.put(
   '/recordings/:id/document',
