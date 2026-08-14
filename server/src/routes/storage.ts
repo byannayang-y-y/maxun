@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from 'express';
+import { Router } from 'express';
 import multer from 'multer';
 import logger from "../logger";
 import { createRemoteBrowserForRun, destroyRemoteBrowser } from "../browser-management/controller";
@@ -42,48 +42,17 @@ const sanitizeRobotMeta = (robot: any): any => {
   return plain;
 };
 
-// const pdfUpload = multer({
-//   storage: multer.memoryStorage(),
-//   limits: { fileSize: MAX_FILE_SIZE_BYTES },
-//   fileFilter: (_req, file, cb) => {
-//     if (file.mimetype === 'application/pdf') {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only PDF files are allowed'));
-//     }
-//   },
-// });
-
-// This widens the upload filter in the API so the backend accepts JPG and PNG in addition to PDF. Pulling the allowed types in a named array keeps the check readable and makes the 400 on rejection and any future format extensions easier to extend. image/jpeg is the MIME type for both .jpg and .jpeg, so that single entry covers both extensions
-
-const ALLOWED_DOCUMENT_MIME_TYPES = ['application/pdf', 'image/png', "image/jpeg"]
-
 const pdfUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_DOCUMENT_MIME_TYPES.includes(file.mimetype)) {
+    if (file.mimetype === 'application/pdf') {
       cb(null, true);
-  } else {
-      cb(new Error(`Only PDF, PNG, and JPG files are allowed. Received: ${file.mimetype}`));
+    } else {
+      cb(new Error('Only PDF files are allowed'));
     }
   },
 });
-
-// This wraps multer's upload in a small middleware that catches the two errors it can throw, an unsupported file type from our filter and a file over the size limit, and returns a clean HTTP 400 with a readable message. Without this, multer will throw a 500 with a generic error message that isn't helpful to the user.
-
-const uploadSingleDocument = (req: Request, res: Response, next: NextFunction) => {
-  pdfUpload.single('file')(req, res, (err: any) => {
-    if (err) {
-      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        const maxMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
-        return res.status(400).json({ error: `File size exceeds the maximum limit of ${maxMb} MB.` });
-      }
-    return res.status(400).json({ error: err.message || 'An error occurred during file upload.' });
-    }
-    next();
-  });
-};
 
 const normalizeRobotUrl = (rawUrl: string): string => {
   let normalizedUrl: URL;
@@ -2201,13 +2170,13 @@ router.post('/recordings/search', requireSignIn, async (req: AuthenticatedReques
 router.post(
   '/recordings/document',
   requireSignIn,
-  uploadSingleDocument,
+  pdfUpload.single('file'),
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
 
       const { prompt, name, llmProvider, llmModel, llmApiKey, llmBaseUrl } = req.body;
       if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -2259,13 +2228,13 @@ router.post(
 router.post(
   '/recordings/document-parse',
   requireSignIn,
-  uploadSingleDocument,
+  pdfUpload.single('file'),
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
 
       const { name, formats } = req.body;
 
@@ -2426,13 +2395,13 @@ router.post('/runs/document-parse-run/:id', requireSignIn, async (req: Authentic
 router.put(
   '/recordings/:id/document',
   requireSignIn,
-  uploadSingleDocument,
+  pdfUpload.single('file'),
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF file is required.' });
 
       const robot = await Robot.findOne({ where: { 'recording_meta.id': req.params.id, userId: req.user.id } });
       if (!robot) return res.status(404).json({ error: 'Robot not found.' });
