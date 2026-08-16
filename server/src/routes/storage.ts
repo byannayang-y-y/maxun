@@ -2205,6 +2205,7 @@ router.post(
       const { robot, extractionSchema } = await createDocumentRobotRecord({
         pdfBuffer: file.buffer,
         originalFileName: file.originalname,
+        mimeType: file.mimetype as DocumentMimeType,
         prompt: prompt.trim(),
         robotName: finalName,
         llmProvider: llmProvider as 'anthropic' | 'openai' | 'ollama' | undefined,
