@@ -16,6 +16,10 @@ export function isDocumentMimeType(value: unknown): value is DocumentMimeType {
   return typeof value === 'string' && DOCUMENT_MIME_TYPE_SET.has(value);
 }
 
+export function isImageMimeType(value: unknown): boolean {
+  return value === 'image/jpeg' || value === 'image/png';
+}
+
 // Used at upload time
 export const DOCUMENT_MIME_TO_EXT: Record<DocumentMimeType, string> = {
   'application/pdf': 'pdf',
