@@ -28,6 +28,12 @@ import {
   SCRAPE_OUTPUT_FORMAT_OPTIONS,
   OutputFormats,
 } from '../constants/output-formats';
+import {
+  isDocumentMimeType,
+  DOCUMENT_MIME_TYPES,
+  DocumentMimeType,
+  DOCUMENT_MIME_TO_EXT
+} from '../constants/document-types';
 import { MAX_FILE_SIZE_BYTES } from '../workflow-management/classes/DocumentInterpreter';
 import { createDocumentRobotRecord } from '../utils/document/createDocumentRobotRecord';
 import { createDocumentParseRobotRecord } from '../utils/document/createDocumentParseRobotRecord';
@@ -42,45 +48,22 @@ const sanitizeRobotMeta = (robot: any): any => {
   return plain;
 };
 
-// const pdfUpload = multer({
-//   storage: multer.memoryStorage(),
-//   limits: { fileSize: MAX_FILE_SIZE_BYTES },
-//   fileFilter: (_req, file, cb) => {
-//     if (file.mimetype === 'application/pdf') {
-//       cb(null, true);
-//     } else {
-//       cb(new Error('Only PDF files are allowed'));
-//     }
-//   },
-// });
-
-// This widens the upload filter in the API so the backend accepts JPG and PNG in addition to PDF. Pulling the allowed types in a named array keeps the check readable and makes the 400 on rejection and any future format extensions easier to extend. image/jpeg is the MIME type for both .jpg and .jpeg, so that single entry covers both extensions
-
-const ALLOWED_DOCUMENT_MIME_TYPES = ['application/pdf', 'image/png', "image/jpeg"]
-
-const pdfUpload = multer({
+const documentUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_FILE_SIZE_BYTES },
   fileFilter: (_req, file, cb) => {
-    if (ALLOWED_DOCUMENT_MIME_TYPES.includes(file.mimetype)) {
+    if (isDocumentMimeType(file.mimetype)) {
       cb(null, true);
-  } else {
-      cb(new Error(`Only PDF, PNG, and JPG files are allowed. Received: ${file.mimetype}`));
+    } else {
+      cb(new Error(`Unsupported file type. Allowed: ${DOCUMENT_MIME_TYPES.join(', ')}`));
     }
-  },
+  }
 });
 
-// This wraps multer's upload in a small middleware that catches the two errors it can throw, an unsupported file type from our filter and a file over the size limit, and returns a clean HTTP 400 with a readable message. Without this, multer will throw a 500 with a generic error message that isn't helpful to the user.
-
-const uploadSingleDocument = (req: Request, res: Response, next: NextFunction) => {
-  pdfUpload.single('file')(req, res, (err: any) => {
-    if (err) {
-      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        const maxMb = Math.round(MAX_FILE_SIZE_BYTES / (1024 * 1024));
-        return res.status(400).json({ error: `File size exceeds the maximum limit of ${maxMb} MB.` });
-      }
-    return res.status(400).json({ error: err.message || 'An error occurred during file upload.' });
-    }
+const uploadDocument = (req: any, res: any, next: any) => {
+  documentUpload.single('file')(req, res, (err: any) => {
+    if (err)
+      return res.status(400).json({ error: err.message || 'Invalid file upload.' });
     next();
   });
 };
@@ -2195,19 +2178,19 @@ router.post('/recordings/search', requireSignIn, async (req: AuthenticatedReques
 
 /**
  * POST endpoint for creating a document extraction robot (doc-extract).
- * Accepts a PDF upload and an extraction prompt. Uses the configured LLM to generate
+ * Accepts a PDF, JPG, or PNG upload and an extraction prompt. Uses the configured LLM to generate
  * an extraction schema and stores the document in MinIO.
  */
 router.post(
   '/recordings/document',
   requireSignIn,
-  uploadSingleDocument,
+  uploadDocument,
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG/JPEG file is required.' });
 
       const { prompt, name, llmProvider, llmModel, llmApiKey, llmBaseUrl } = req.body;
       if (!prompt || typeof prompt !== 'string' || !prompt.trim()) {
@@ -2220,8 +2203,9 @@ router.post(
       }
 
       const { robot, extractionSchema } = await createDocumentRobotRecord({
-        pdfBuffer: file.buffer,
+        documentBuffer: file.buffer,
         originalFileName: file.originalname,
+        mimeType: file.mimetype as DocumentMimeType,
         prompt: prompt.trim(),
         robotName: finalName,
         llmProvider: llmProvider as 'anthropic' | 'openai' | 'ollama' | undefined,
@@ -2253,19 +2237,19 @@ router.post(
 
 /**
  * POST endpoint for creating a document parse robot (doc-parse).
- * Accepts a PDF upload and output format list. Parses the document immediately and
+ * Accepts a PDF, JPG, or PNG upload and output format list. Parses the document immediately and
  * stores both the document and parsed output in MinIO / database.
  */
 router.post(
   '/recordings/document-parse',
   requireSignIn,
-  uploadSingleDocument,
+  uploadDocument,
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG/JPEG file is required.' });
 
       const { name, formats } = req.body;
 
@@ -2281,11 +2265,12 @@ router.post(
       }
 
       const { robot, parsedOutput } = await createDocumentParseRobotRecord({
-        pdfBuffer: file.buffer,
+        documentBuffer: file.buffer,
         originalFileName: file.originalname,
         robotName: finalName,
         outputFormats,
         userId: req.user.id,
+        mimeType: file.mimetype as DocumentMimeType,
       });
 
       capture('maxun-oss-robot-created', {
@@ -2421,18 +2406,18 @@ router.post('/runs/document-parse-run/:id', requireSignIn, async (req: Authentic
 });
 
 /**
- * PUT endpoint to replace the PDF document for an existing doc-extract or doc-parse robot.
+ * PUT endpoint to replace the document for an existing doc-extract or doc-parse robot.
  */
 router.put(
   '/recordings/:id/document',
   requireSignIn,
-  uploadSingleDocument,
+  uploadDocument,
   async (req: AuthenticatedRequest, res) => {
     try {
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG file is required.' });
+      if (!file) return res.status(400).json({ error: 'A file is required.' });
 
       const robot = await Robot.findOne({ where: { 'recording_meta.id': req.params.id, userId: req.user.id } });
       if (!robot) return res.status(404).json({ error: 'Robot not found.' });
@@ -2442,14 +2427,26 @@ router.put(
         return res.status(400).json({ error: 'Robot is not a document robot.' });
       }
 
-      const { uploadDocumentToMinio } = await import('../storage/mino');
-      const documentKey = (robot.recording as any).documentKey;
-      if (!documentKey) return res.status(400).json({ error: 'Robot has no document key.' });
+      const { uploadDocumentToMinio, deleteDocumentFromMinio } = await import('../storage/mino');
+      const oldDocumentKey = (robot.recording as any).documentKey;
+      if (!oldDocumentKey) return res.status(400).json({ error: 'Robot has no document key.' });
 
-      await uploadDocumentToMinio(documentKey, file.buffer);
+      const mimeType = file.mimetype as DocumentMimeType;
+      const newDocumentKey = `documents/${req.params.id}/document.${DOCUMENT_MIME_TO_EXT[mimeType]}`;
+
+      await uploadDocumentToMinio(newDocumentKey, file.buffer, mimeType);
+
+      if (newDocumentKey !== oldDocumentKey) {
+        try {
+          await deleteDocumentFromMinio(oldDocumentKey);
+        } catch (cleanupErr: any) {
+          logger.warn(`Failed to delete orphaned document ${oldDocumentKey}: ${cleanupErr.message}`);
+        }
+      }
 
       const updatedRecording: any = {
         ...(robot.recording as any),
+        documentKey: newDocumentKey,
         documentFileName: file.originalname,
       };
 

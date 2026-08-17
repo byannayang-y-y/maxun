@@ -3,6 +3,7 @@ import { DocumentInterpreter, LLMConfig } from '../../workflow-management/classe
 import { getDocumentFromMinio } from '../../storage/mino';
 import { sendWebhook } from '../../routes/webhook';
 import logger from '../../logger';
+import { getMimeTypeFromKey } from '../../constants/document-types';
 
 export async function executeDocumentRun(
   recording: any,
@@ -23,14 +24,16 @@ export async function executeDocumentRun(
   };
 
   try {
-    const pdfBuffer = await getDocumentFromMinio(robotRecording.documentKey);
+    const documentBuffer = await getDocumentFromMinio(robotRecording.documentKey);
+    const mimeType = getMimeTypeFromKey(robotRecording.documentKey);
 
     const result = await DocumentInterpreter.extractData(
-      pdfBuffer,
+      documentBuffer,
       robotRecording.prompt || '',
       robotRecording.extractionSchema || {},
-      llmConfig
-    );
+      llmConfig,
+      mimeType
+    );          
 
     const serializableOutput = {
       scrapeDoc: {

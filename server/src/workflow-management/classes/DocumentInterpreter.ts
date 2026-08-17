@@ -380,6 +380,7 @@ const sanitizeSchema = (input: any, prompt?: string): ExtractionSchema => {
 const GENERIC_SCHEMA_LABELS = [
   'details', 'detail', 'information', 'info', 'data', 'document',
   'document details', 'document information', 'document data', 'summary', 'content', 'fields',
+  'field key', 'field label',
 ];
 
 const isGenericSchemaLabel = (value: string): boolean => {
