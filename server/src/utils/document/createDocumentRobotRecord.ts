@@ -6,9 +6,9 @@ import { DOCUMENT_MIME_TO_EXT, DocumentMimeType } from '../../constants/document
 import logger from '../../logger';
 
 export interface CreateDocumentRobotParams {
-  pdfBuffer: Buffer;
+  documentBuffer: Buffer;
   originalFileName: string;
-  mimeType: DocumentMimeType;   
+  mimeType: DocumentMimeType;
   prompt: string;
   robotName?: string;
   llmProvider?: 'anthropic' | 'openai' | 'ollama';
@@ -27,9 +27,9 @@ export async function createDocumentRobotRecord(
   params: CreateDocumentRobotParams
 ): Promise<CreateDocumentRobotResult> {
   const {
-    pdfBuffer,
+    documentBuffer,
     originalFileName,
-    mimeType, 
+    mimeType,
     prompt,
     robotName,
     llmProvider,
@@ -46,7 +46,7 @@ export async function createDocumentRobotRecord(
     baseUrl: llmBaseUrl,
   };
   
-  const { text: sampleText } = await DocumentInterpreter.extractTextFromPDF(pdfBuffer, mimeType);
+  const { text: sampleText } = await DocumentInterpreter.extractTextFromPDF(documentBuffer, mimeType);
   if (!sampleText) throw new Error('Could not extract text from document');
 
   const extractionSchema = await DocumentInterpreter.generateExtractionSchema(prompt, sampleText, llmConfig);
@@ -56,7 +56,7 @@ export async function createDocumentRobotRecord(
   const finalName = robotName?.trim() || `Document: ${prompt.substring(0, 50)}`;
   const documentKey = `documents/${robotId}/document.${DOCUMENT_MIME_TO_EXT[mimeType]}`;
   
-  await uploadDocumentToMinio(documentKey, pdfBuffer, mimeType);
+  await uploadDocumentToMinio(documentKey, documentBuffer, mimeType);
 
   const robot = await Robot.create({
     id: uuid(),

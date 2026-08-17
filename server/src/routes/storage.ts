@@ -2178,7 +2178,7 @@ router.post('/recordings/search', requireSignIn, async (req: AuthenticatedReques
 
 /**
  * POST endpoint for creating a document extraction robot (doc-extract).
- * Accepts a PDF upload and an extraction prompt. Uses the configured LLM to generate
+ * Accepts a PDF, JPG, or PNG upload and an extraction prompt. Uses the configured LLM to generate
  * an extraction schema and stores the document in MinIO.
  */
 router.post(
@@ -2203,7 +2203,7 @@ router.post(
       }
 
       const { robot, extractionSchema } = await createDocumentRobotRecord({
-        pdfBuffer: file.buffer,
+        documentBuffer: file.buffer,
         originalFileName: file.originalname,
         mimeType: file.mimetype as DocumentMimeType,
         prompt: prompt.trim(),
@@ -2249,7 +2249,7 @@ router.post(
       if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
 
       const file = (req as any).file as Express.Multer.File | undefined;
-      if (!file) return res.status(400).json({ error: 'A file is required.' });
+      if (!file) return res.status(400).json({ error: 'A PDF, PNG, or JPG/JPEG file is required.' });
 
       const { name, formats } = req.body;
 

@@ -24,11 +24,11 @@ export async function executeDocumentRun(
   };
 
   try {
-    const pdfBuffer = await getDocumentFromMinio(robotRecording.documentKey);
+    const documentBuffer = await getDocumentFromMinio(robotRecording.documentKey);
     const mimeType = getMimeTypeFromKey(robotRecording.documentKey);
 
     const result = await DocumentInterpreter.extractData(
-      pdfBuffer,
+      documentBuffer,
       robotRecording.prompt || '',
       robotRecording.extractionSchema || {},
       llmConfig,
