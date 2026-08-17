@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import multer from 'multer';
 import logger from "../logger";
 import { createRemoteBrowserForRun, destroyRemoteBrowser } from "../browser-management/controller";
