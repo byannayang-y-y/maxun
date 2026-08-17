@@ -1470,17 +1470,6 @@ export class DocumentInterpreter {
     )];
   }
 
-  // static async parse(buffer: Buffer, outputFormats: OutputFormats[]): Promise<ParsedOutput> {
-  //   const parsed = await this.parsePDF(buffer);
-  //   const result: ParsedOutput = { pageCount: parsed.pageCount };
-
-  //   if (outputFormats.includes('markdown')) result.markdown = this.toMarkdown(parsed);
-  //   if (outputFormats.includes('html')) result.html = this.toHtml(parsed);
-  //   if (outputFormats.includes('links')) result.links = this.extractLinks(parsed.text);
-
-  //   return result;
-  // }
-
   // Routes images to parseImage and everything else to the existing parsePDF pipeline.
   static async parse(buffer: Buffer, outputFormats: OutputFormats[], mimeType?: string): Promise<ParsedOutput> {
     const isImage = isImageMimeType(mimeType);
